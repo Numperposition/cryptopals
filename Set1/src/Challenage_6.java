@@ -18,6 +18,7 @@ public class Challenage_6 { //reference: https://trustedsignal.blogspot.com/2015
 //        int count = ch6.getHammingDist(tmp1, tmp2);
 //        System.out.print("count = " + count);
         byte[] cipherText = ch6.readBase64("6.txt");
+        //System.out.print("size = " + cipherText.length);
         Map<Integer, Double> map = new HashMap<Integer, Double>();
         for(int keySize = 2; keySize <= 40; keySize++)
         {
@@ -37,14 +38,73 @@ public class Challenage_6 { //reference: https://trustedsignal.blogspot.com/2015
                 return o1.getValue().compareTo(o2.getValue());
             }
         });
-        //sorted result is as: (key size) 29:4.12, 5:4.35, 2:4.5, 24:4.53; My guess is the key length is 5.
+        //sorted result is as: (key size) 29:4.12, 5:4.35, 2:4.5, 24:4.53; My guess is the key length is 29.
         for (int i = 0; i < infoIds.size(); i++) {
             int id = infoIds.get(i).getKey();
             double sc = infoIds.get(i).getValue();
-            System.out.println("key size: " + id + ", HMdist: " + sc);
+          //  System.out.println("key size: " + id + ", HMdist: " + sc);
         }
 
+        List<List<Byte>> list = new ArrayList<List<Byte>>();
 
+        for(int i = 0; i < 29; i++)
+        {
+            List<Byte> l = new ArrayList<Byte>();
+            list.add(l);
+        }
+
+        for(int i = 0; i < cipherText.length; )
+        {
+            for(int j = 0; j < 29 && i < cipherText.length; j++)
+            {
+                list.get(j).add(cipherText[i]);
+                i++;
+            }
+        }
+        byte[] key = new byte[29];
+        Challenage_3 ch3 = new Challenage_3();
+        for(int i = 0; i < list.size(); i++)
+        {
+            //System.out.print("current list len = " + list.get(i).size());
+            double maxScore = 0.0;
+            byte posKey = 0x00;
+            for(int j = 0; j < 256; j++)
+            {
+                int len = list.get(i).size();
+                byte[] bytes = new byte[len];
+                for(int k = 0; k < len; k++)
+                    bytes[k] = list.get(i).get(k);
+                bytes = ch3.FixXOR(bytes, (byte)j);
+                String tmp = new String(bytes);
+                double ss = ch3.getScore2(tmp);
+                if(ss > maxScore)
+                {
+                    maxScore = ss;
+                    posKey = (byte)j;
+                }
+            }
+            key[i] = posKey;
+        }
+        System.out.println("key: " + new String(key));
+        byte[] output = ch6.XORdecrypt(cipherText, key);
+        System.out.print(new String(output));
+
+    }
+
+    public byte[] XORdecrypt(byte[] plainBytes, byte[] key)
+    {
+
+        byte[] res = new byte[plainBytes.length];
+        for(int j = 0; j < plainBytes.length; )
+        {
+            for(int i = 0; i < key.length && j < plainBytes.length; i++)
+            {
+                byte b = key[i];
+                res[j] = (byte) (plainBytes[j] ^ b);
+                j++;
+            }
+        }
+        return res;
     }
 
     public byte[] readBase64(String filename)
